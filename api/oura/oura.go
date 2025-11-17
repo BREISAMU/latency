@@ -1,8 +1,10 @@
-package oura
+package handler
 
 import (
+	"encoding/json"
 	"errors"
 	"math/rand"
+	"net/http"
 )
 
 type Snapshot struct {
@@ -11,17 +13,11 @@ type Snapshot struct {
 
 func getSleepStatus() (bool, error) {
 	randomNumber := rand.Intn(10)
-
-	var isSleeping bool
-
-	// Add error checking with request op
-	isSleeping = randomNumber == 4
-
+	isSleeping := randomNumber == 4
 	return isSleeping, nil
 }
 
-func GetSnapshot() (Snapshot, error) {
-	var isSleeping bool
+func getSnapShot() (Snapshot, error) {
 	isSleeping, err := getSleepStatus()
 
 	if err != nil {
@@ -33,4 +29,20 @@ func GetSnapshot() (Snapshot, error) {
 	}
 
 	return snapshot, nil
+}
+
+func Handler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	snapshot, err := getSnapShot()
+	if err != nil {
+		http.Error(w, "Failure retrieving OURA snapshot", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(snapshot)
 }
